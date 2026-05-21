@@ -4,9 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use command_run::{Command, LogTo};
 
-use crate::Source;
-use crate::data::Nixpkgs;
 use crate::data::import::{NixOption, NixpkgsEntry, Package};
+use crate::data::Nixpkgs;
+use crate::Source;
 
 /// Wrapper for the channel `packages.json` format.
 #[derive(Deserialize)]
@@ -218,6 +218,43 @@ pub fn get_home_manager_options(nixpkgs: &Source) -> Result<Vec<NixpkgsEntry>> {
     Ok(attr_set
         .into_iter()
         .map(NixpkgsEntry::HomeManagerOption)
+        .collect())
+}
+
+fn nix_darwin_flake_ref(nixpkgs: &Source) -> String {
+    let base = "github:nix-darwin/nix-darwin";
+    match nixpkgs {
+        Source::Nixpkgs(Nixpkgs { channel, .. }) if channel != "unstable" => {
+            format!("{base}/nix-darwin-{channel}")
+        }
+        _ => base.to_string(),
+    }
+}
+
+pub fn get_nix_darwin_options(nixpkgs: &Source) -> Result<Vec<NixpkgsEntry>> {
+    let darwin_flake_ref = nix_darwin_flake_ref(nixpkgs);
+    let mut command = Command::with_args("nix", &["eval", "--json", "--no-write-lock-file"]);
+    command.add_arg_pair("-f", super::EXTRACT_SCRIPT.clone());
+    command.add_arg_pair("-I", format!("nixpkgs={}", nixpkgs.to_flake_ref()));
+    command.add_args(["--override-flake", "input-flake", &darwin_flake_ref].iter());
+    command.add_arg("home-manager-options");
+
+    command.enable_capture();
+    command.log_to = LogTo::Log;
+    command.log_output_on_error = true;
+
+    let cow = command
+        .run()
+        .with_context(|| "Failed to gather information about home-manager options")?;
+
+    let output = &*cow.stdout_string_lossy();
+    let de = &mut serde_json::Deserializer::from_str(output);
+    let attr_set: Vec<NixOption> = serde_path_to_error::deserialize(de)
+        .with_context(|| "Could not parse home-manager options")?;
+
+    Ok(attr_set
+        .into_iter()
+        .map(NixpkgsEntry::NixDarwinOption)
         .collect())
 }
 

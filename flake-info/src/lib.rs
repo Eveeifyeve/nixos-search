@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 
 use anyhow::Result;
-use data::{Export, Flake, Source, import::Kind};
+use data::{import::Kind, Export, Flake, Source};
 use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};
 
@@ -76,6 +76,12 @@ pub fn process_nixpkgs(
 
     let mut hm_options = if matches!(kind, Kind::All | Kind::HomeManagerOption) {
         commands::get_home_manager_options(nixpkgs)?
+    } else {
+        Vec::new()
+    };
+
+    let mut darwin_options = if matches!(kind, Kind::All | Kind::NixDarwinOption) {
+        commands::get_nix_darwin_options(nixpkgs)?
     } else {
         Vec::new()
     };
