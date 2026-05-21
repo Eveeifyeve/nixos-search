@@ -353,6 +353,11 @@ repo = "nix-vscode-extensions"
 
 [[sources]]
 type = "github"
+owner = "nix-darwin"
+repo = "nix-darwin"
+
+[[sources]]
+type = "github"
 owner = "nix-systems"
 repo = "aarch64-darwin"
 
