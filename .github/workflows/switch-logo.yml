@@ -20,7 +20,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TODAY=$(date +'%m-%d')
-          if [ "$TODAY" == "05-31" ]; then
+          if [ "$TODAY" == "06-01" ]; then
             sed --in-place 's|/images/nix-logo\.png|/images/nix-logo-pride.png|g' frontend/src/Main.elm
             branch="chore/use-pride-logo"
             commit_msg="chore(logo): use pride logo"
